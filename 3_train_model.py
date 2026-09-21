@@ -22,6 +22,9 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 
 import database as db
 
+# เตรียมฐานข้อมูลให้พร้อม (สร้างตาราง + ย้ายคำจาก labels.py อัตโนมัติถ้าเป็นเครื่องใหม่)
+db.ensure_ready()
+
 # รายชื่อคำที่จะเทรน ตอนนี้ดึงจากฐานข้อมูล (ตาราง labels) แทนไฟล์ labels.py แบบเดิม
 LABELS = db.get_label_names()
 
