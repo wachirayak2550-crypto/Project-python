@@ -177,8 +177,14 @@ def get_ice_servers():
     repo เป็น public ใครก็เห็นได้) ถ้าไม่ได้ตั้งค่า secrets ไว้ (เช่น รันในเครื่อง
     ตัวเองโดยยังไม่ได้ตั้งค่า) จะใช้แค่ STUN ฟรีแทน ไม่ error
     """
-    username = st.secrets.get("TURN_USERNAME")
-    credential = st.secrets.get("TURN_CREDENTIAL")
+    # ถ้าไม่มีไฟล์ secrets.toml เลย (เช่น เพิ่ง git clone มาใหม่ ยังไม่ได้ตั้งค่า)
+    # st.secrets จะ error ทันทีตอนเรียกใช้ ไม่ใช่แค่คืนค่าว่างเฉยๆ เลยต้องดัก try/except
+    try:
+        username = st.secrets.get("TURN_USERNAME")
+        credential = st.secrets.get("TURN_CREDENTIAL")
+    except Exception:
+        username = None
+        credential = None
 
     if not username or not credential:
         return [{"urls": ["stun:stun.l.google.com:19302"]}]
