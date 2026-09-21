@@ -1,17 +1,9 @@
 # IMPORTANT: this project requires Python 3.11 (mediapipe==0.10.9 has no wheel for Python 3.12+)
 # If your default Python is newer, install Python 3.11 separately and run:
 #   py -3.11 -m pip install -r requirements.txt
-#
-# Do NOT add an explicit protobuf pin here. mediapipe==0.10.9 needs an old
-# protobuf (<4), while streamlit itself needs a newer one on recent versions.
-# Leaving protobuf unpinned lets pip's resolver pick a compatible streamlit
-# version automatically (it settles on an older streamlit release that still
-# supports everything this app uses) - this is what makes the install work
-# both locally and on Streamlit Community Cloud.
 opencv-python
 mediapipe==0.10.9
 scikit-learn
 numpy
 streamlit
 Pillow
-streamlit-webrtc
