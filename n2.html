@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>HandSpeak</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+
+            font-family:
+                "Noto Sans Thai",
+                "Segoe UI",
+                Arial,
+                sans-serif;
+
+            background: #f5f8ff;
+
+            color: #243b6b;
+        }
+
+        .page {
+            min-height: 100vh;
+
+            padding: 50px 8%;
+        }
+
+        .header {
+            display: flex;
+
+            justify-content: space-between;
+            align-items: center;
+
+            padding-bottom: 20px;
+
+            border-bottom: 1px solid #dce4f3;
+
+            margin-bottom: 35px;
+        }
+
+
+        .logo h1 {
+            margin: 0;
+
+            font-size: 40px;
+
+            color: #eb0f67;
+        }
+
+
+        .logo h1 span {
+            color: #e16347;
+        }
+
+
+        .description {
+            margin: 3px 0 0;
+
+            color: #7183a7;
+
+            font-size: 15px;
+        }
+
+
+        /* User */
+
+        .user-area {
+            display: flex;
+
+            align-items: center;
+
+            gap: 15px;
+        }
+
+
+        .username {
+            color: #7183a7;
+
+            font-size: 15px;
+        }
+
+
+        .username strong {
+            color: #243b6b;
+        }
+
+
+        .logout {
+            padding: 10px 18px;
+
+            border: 1px solid #dce4f3;
+
+            border-radius: 8px;
+
+            background: white;
+
+            color: #243b6b;
+
+            font-size: 14px;
+
+            cursor: pointer;
+        }
+
+
+        .logout:hover {
+            border-color: #eb0f67;
+
+            color: #eb0f67;
+        }
+
+
+        /* เนื้อหาหลัก */
+
+        .content {
+            width: 850px;
+
+            max-width: 100%;
+
+            margin: auto;
+        }
+
+
+        /* กล้อง */
+
+        .camera-box {
+            width: 100%;
+
+            height: 450px;
+
+            background: #202020;
+
+            border-radius: 10px;
+
+            border: 1px solid #dce4f3;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+        }
+
+
+        .camera-text {
+            text-align: center;
+
+            color: #aaaaaa;
+        }
+
+
+        .camera-text h2 {
+            margin: 0 0 8px;
+
+            font-size: 24px;
+
+            color: white;
+
+            font-weight: 500;
+        }
+
+
+        .camera-text p {
+            margin: 0;
+
+            font-size: 14px;
+        }
+
+
+        /* คำที่ทายได้ */
+
+        .prediction {
+            text-align: center;
+
+            margin-top: 25px;
+        }
+
+
+        .prediction-title {
+            margin: 0 0 5px;
+
+            color: #7183a7;
+
+            font-size: 15px;
+        }
+
+
+        .prediction-word {
+            margin: 0;
+
+            font-size: 36px;
+
+            color: #eb0f67;
+
+            font-weight: 600;
+        }
+
+
+        /* ประโยค */
+
+        .sentence {
+            margin-top: 30px;
+        }
+
+
+        .sentence-title {
+            margin: 0 0 8px;
+
+            color: #243b6b;
+
+            font-size: 16px;
+
+            font-weight: 600;
+        }
+
+
+        .sentence-box {
+            width: 100%;
+
+            min-height: 75px;
+
+            padding: 18px;
+
+            background: white;
+
+            border: 1px solid #dce4f3;
+
+            border-radius: 10px;
+
+            color: #52688f;
+
+            font-size: 18px;
+
+            text-align: left;
+        }
+
+
+        /* =========================
+           ปุ่มด้านล่าง
+        ========================= */
+
+        .button-area {
+            display: flex;
+
+            gap: 12px;
+
+            margin-top: 18px;
+        }
+
+
+        .action-button {
+            flex: 1;
+
+            height: 50px;
+
+            border-radius: 9px;
+
+            font-size: 15px;
+
+            cursor: pointer;
+
+            border: 1px solid #dce4f3;
+
+            background: white;
+
+            color: #243b6b;
+        }
+
+
+        .action-button:hover {
+            border-color: #eb0f67;
+
+            color: #eb0f67;
+        }
+
+
+        /* ล้างประโยค */
+
+        .clear {
+            background: #fff1f5;
+
+            border-color: #f4c9d8;
+
+            color: #eb0f67;
+        }
+
+
+        /* ลบคำล่าสุด */
+
+        .delete {
+            background: #fff5f2;
+
+            border-color: #f1d0c7;
+
+            color: #e16347;
+        }
+
+
+        /* บันทึก */
+
+        .save {
+            background: #eb0f67;
+
+            border-color: #eb0f67;
+
+            color: white;
+        }
+
+
+        .save:hover {
+            background: #d90d5e;
+
+            color: white;
+        }
+
+        @media (max-width: 700px) {
+
+            .page {
+                padding: 25px 15px;
+            }
+
+
+            .header {
+                flex-direction: column;
+
+                align-items: flex-start;
+
+                gap: 15px;
+            }
+
+
+            .user-area {
+                width: 100%;
+
+                justify-content: space-between;
+            }
+
+
+            .camera-box {
+                height: 300px;
+            }
+
+
+            .button-area {
+                flex-direction: column;
+            }
+
+        }
+
+    </style>
+</head>
+
+
+<body>
+
+
+    <main class="page">
+
+        <header class="header">
+
+
+            <div class="logo">
+
+                <h1>
+                    Hand<span>Speak</span>
+                </h1>
+
+                <p class="description">
+                    ระบบล่ามภาษามือ
+                </p>
+
+            </div>
+
+
+            <div class="user-area">
+
+                <div class="username">
+
+                    ผู้ใช้:
+                    <strong>
+                        Username
+                    </strong>
+
+                </div>
+
+
+                <button
+                    class="logout"
+                    onclick="logout()"
+                >
+                    ออกจากระบบ
+                </button>
+
+            </div>
+
+
+        </header>
+
+
+
+        <!--Content -->
+
+        <div class="content">
+
+
+            <!-- กล้อง -->
+
+            <div class="camera-box">
+
+                <div class="camera-text">
+
+                    <h2>
+                        กล้อง
+                    </h2>
+
+                    <p>
+                        พื้นที่แสดงกล้อง
+                    </p>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- คำที่ทายได้ -->
+
+            <div class="prediction">
+
+                <p class="prediction-title">
+                    คำที่ทายได้
+                </p>
+
+                <p
+                    class="prediction-word"
+                    id="prediction"
+                >
+                    กำลังรอการตรวจจับ...
+                </p>
+
+            </div>
+
+
+
+            <!-- ประโยค -->
+
+            <div class="sentence">
+
+                <p class="sentence-title">
+                    ประโยคที่สะสมไว้
+                </p>
+
+
+                <div
+                    class="sentence-box"
+                    id="sentence"
+                >
+                    ยังไม่มีคำ
+                </div>
+
+            </div>
+
+
+
+            <!-- ปุ่ม -->
+
+            <div class="button-area">
+
+                <button
+                    class="action-button clear"
+                    onclick="clearSentence()"
+                >
+                    ล้างประโยค
+                </button>
+
+
+                <button
+                    class="action-button delete"
+                    onclick="deleteLastWord()"
+                >
+                    ลบคำล่าสุด
+                </button>
+
+
+                <button
+                    class="action-button save"
+                    onclick="saveSentence()"
+                >
+                    บันทึกประโยค
+                </button>
+
+            </div>
+
+
+        </div>
+
+
+    </main>
+
+
+
+    <script>
+
+
+        /* ล้างประโยค */
+
+        function clearSentence() {
+
+            document.getElementById("sentence").textContent =
+                "ยังไม่มีคำ";
+
+        }
+
+
+
+        /* ลบคำล่าสุด*/
+
+        function deleteLastWord() {
+
+            const sentenceBox =
+                document.getElementById("sentence");
+
+            let sentence =
+                sentenceBox.textContent.trim();
+
+
+            if (
+                sentence === "" ||
+                sentence === "ยังไม่มีคำ"
+            ) {
+                return;
+            }
+
+
+            let words =
+                sentence.split(" ");
+
+
+            words.pop();
+
+
+            if (words.length === 0) {
+
+                sentenceBox.textContent =
+                    "ยังไม่มีคำ";
+
+            } else {
+
+                sentenceBox.textContent =
+                    words.join(" ");
+
+            }
+
+        }
+
+
+
+        /* บันทึกประโยค*/
+
+        function saveSentence() {
+
+            const sentence =
+                document.getElementById("sentence")
+                .textContent;
+
+
+            if (
+                sentence === "" ||
+                sentence === "ยังไม่มีคำ"
+            ) {
+
+                alert("ยังไม่มีประโยคให้บันทึก");
+
+                return;
+            }
+
+
+            alert(
+                "บันทึกประโยคแล้ว\n\n" +
+                sentence
+            );
+
+        }
+
+
+
+        /* Logout */
+
+        function logout() {
+
+            alert("ออกจากระบบแล้ว");
+
+        }
+
+
+    </script>
+
+
+</body>
+
+</html>

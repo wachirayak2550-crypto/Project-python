@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>HandSpeak</title>
+
+  <style>
+    
+body {
+  margin: 0;
+  font-family: "Noto Sans Thai", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 10% 10%, #e4efff, transparent 25%),
+    radial-gradient(circle at 90% 90%, #e9e2ff, transparent 30%),
+    #f7f9ff;
+
+  color: #243b6b;
+}
+.page {
+  text-align: center;
+  min-height: 100vh;
+  padding: 100px 10%;
+}
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f8ff;
+    }
+  </style>
+</head>
+<body>
+    <main class="page">
+
+        <header class="header">
+
+
+            <div class="logo">
+
+                <h1>
+                    Hand<span>Speak</span>
+                </h1>
+
+                <p class="description">
+                    ระบบล่ามภาษามือ
+                </p>
+
+            </div>
+
+
+            <div class="user-area">
+
+                <div class="username">
+
+                    ผู้ใช้:
+                    <strong>
+                        Username
+                    </strong>
+
+                </div>
+
+
+                <button
+                    class="logout"
+                    onclick="logout()"
+                >
+                    ออกจากระบบ
+                </button>
+
+            </div>
+
+
+        </header>
+
+
+
+        <!--Content -->
+
+        <div class="content">
+
+
+            <!-- กล้อง -->
+
+            <div class="camera-box">
+
+                <div class="camera-text">
+
+                    <h2>
+                        Camera
+                    </h2>
+
+                    <p>
+                        พื้นที่สำหรับแสดงภาพจากกล้อง
+                    </p>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- คำที่ทายได้ -->
+
+            <div class="prediction">
+
+                <p class="prediction-title">
+                    คำที่ทายได้
+                </p>
+
+                <p
+                    class="prediction-word"
+                    id="prediction"
+                >
+                    กำลังรอการตรวจจับ...
+                </p>
+
+            </div>
+
+
+
+            <!-- ประโยค -->
+
+            <div class="sentence">
+
+                <p class="sentence-title">
+                    ประโยคที่สะสมไว้
+                </p>
+
+
+                <div
+                    class="sentence-box"
+                    id="sentence"
+                >
+                    ยังไม่มีคำ
+                </div>
+
+            </div>
+
+
+
+            <!-- ปุ่ม -->
+
+            <div class="button-area">
+
+                <button
+                    class="action-button clear"
+                    onclick="clearSentence()"
+                >
+                    ล้างประโยค
+                </button>
+
+
+                <button
+                    class="action-button delete"
+                    onclick="deleteLastWord()"
+                >
+                    ลบคำล่าสุด
+                </button>
+
+
+                <button
+                    class="action-button save"
+                    onclick="saveSentence()"
+                >
+                    บันทึกประโยค
+                </button>
+
+            </div>
+
+
+        </div>
+
+
+    </main>

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>HandSpeak</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Noto Sans Thai", "Segoe UI", Arial, sans-serif;
+
+            background:
+                radial-gradient(
+                    circle at 10% 10%,
+                    #e4efff,
+                    transparent 25%
+                ),
+                radial-gradient(
+                    circle at 90% 90%,
+                    #e9e2ff,
+                    transparent 30%
+                ),
+                #f7f9ff;
+
+            color: #243b6b;
+        }
+
+        .page {
+            text-align: center;
+            min-height: 100vh;
+            padding: 80px 20px;
+        }
+
+
+        /* Logo */
+
+        .logo h1 {
+            font-size: 50px;
+            margin: 0;
+            color: #eb0f67;
+        }
+
+        .logo h1 span {
+            color: #e16347;
+        }
+
+        .description {
+            color: #7183a7;
+            font-size: 18px;
+            margin-top: 5px;
+            margin-bottom: 35px;
+        }
+
+
+        /* Login / Sign in*/
+
+        .auth-box {
+            width: 400px;
+            max-width: 95%;
+
+            margin: auto;
+
+            background: white;
+
+            padding: 0 30px 35px;
+
+            border-radius: 20px;
+
+            box-shadow:
+                0 20px 50px rgba(45, 75, 130, 0.15);
+        }
+
+        .b1-aut {
+            display: flex;
+
+            margin-left: -30px;
+            margin-right: -30px;
+            margin-bottom: 30px;
+
+            border-radius: 20px 20px 0 0;
+
+            overflow: hidden;
+        }
+
+        .bu-bu-login {
+            width: 50%;
+
+            height: 65px;
+
+            border: none;
+
+            background: #edf2ff;
+
+            color: #52688f;
+
+            font-size: 18px;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+        }
+
+        .bu-bu-login:hover {
+            background: #dce7ff;
+        }
+
+
+        /* ปุ่มที่กำลังเลือก */
+
+        .bu-bu-login.active {
+            background: linear-gradient(
+                135deg,
+                #eb0f67,
+                #eb0f67
+            );
+
+            color: rgb(249, 248, 248);
+        }
+
+
+        /* หัวข้อแต่ละหน้า*/
+
+        .form-title {
+            font-size: 27px;
+
+            margin-top: 10px;
+            margin-bottom: 8px;
+
+            color: #243b6b;
+        }
+
+        .form-description {
+            color: #8290ac;
+
+            margin-bottom: 25px;
+        }
+
+
+        /* ช่องกรอก */
+
+        .loin-us-pv {
+            margin-bottom: 15px;
+        }
+
+        .loin-us-pv input {
+            width: 100%;
+
+            height: 55px;
+
+            padding: 0 16px;
+
+            border: 1.5px solid #dce4f3;
+
+            border-radius: 12px;
+
+            outline: none;
+
+            font-size: 16px;
+
+            color: #293e69;
+        }
+
+        .loin-us-pv input:focus {
+            border-color: #c0caec;
+
+            box-shadow:
+                0 0 0 4px rgba(99, 130, 238, 0.1);
+        }
+
+
+        /* เข้าสู่ระบบ */
+
+        .submit-button {
+            width: 100%;
+
+            height: 55px;
+
+            margin-top: 10px;
+
+            border: none;
+
+            border-radius: 12px;
+
+            background: linear-gradient(
+                135deg,
+                #eb0f67,
+                #eb0f67
+            );
+
+            color: rgb(252, 249, 249);
+
+            font-size: 17px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+        .submit-button:hover {
+            transform: translateY(-2px);
+        }
+
+
+        /* B2 */
+
+        #b2 .submit-button {
+            background: linear-gradient(
+                135deg,
+                #e16347,
+                #e16347
+            );
+        }
+
+        #b2 .bu-bu-login.active {
+            background: linear-gradient(
+                135deg,
+                #e16347,
+                #e16347
+            );
+        }
+
+
+        /*  B2 ตอนเริ่มต้น */
+
+        #b2 {
+            display: none;
+        }
+
+
+        .guest {
+            margin-top: 25px;
+
+            border: none;
+
+            background: #edf2ff;
+
+            color: #243b6b;
+
+            border-radius: 30px;
+
+            padding: 15px 25px;
+
+            font-size: 16px;
+
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+
+
+<body>
+
+    <main class="page">
+
+        <!-- Log in-->
+
+        <header>
+
+            <div class="logo">
+                <h1>
+                    Hand<span>Speak</span>
+                </h1>
+            </div>
+
+            <p class="description">
+                ระบบล่ามภาษามือ
+            </p>
+
+        </header>
+
+
+        <!-- Login / Sign in -->
+
+        <div class="auth-box">
+
+
+            <!-- B1 Log in-->
+
+            <section id="b1">
+
+                <div class="b1-aut">
+
+                    <button
+                        class="bu-bu-login active"
+                        onclick="showLogin()"
+                    >
+                        Log in
+                    </button>
+
+                    <button
+                        class="bu-bu-login"
+                        onclick="showSignin()"
+                    >
+                        Sign in
+                    </button>
+
+                </div>
+
+
+                <h2 class="form-title">
+                    Welcome back!
+                </h2>
+
+                <p class="form-description">
+                    เข้าสู่ระบบเพื่อใช้งาน HandSpeak
+                </p>
+
+
+                <form>
+
+                    <div class="loin-us-pv">
+
+                        <input
+                            type="text"
+                            placeholder="Username"
+                        >
+
+                    </div>
+
+
+                    <div class="loin-us-pv">
+
+                        <input
+                            type="password"
+                            placeholder="Password"
+                        >
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="submit-button"
+                    >
+                        Log in
+                    </button>
+
+                </form>
+
+            </section>
+
+
+
+            <!-- B2 Sing in-->
+
+            <section id="b2">
+
+                <div class="b1-aut">
+
+                    <button
+                        class="bu-bu-login"
+                        onclick="showLogin()"
+                    >
+                        Log in
+                    </button>
+
+                    <button
+                        class="bu-bu-login active"
+                        onclick="showSignin()"
+                    >
+                        Sign in
+                    </button>
+
+                </div>
+
+
+                <h2 class="form-title">
+                    Create Account
+                </h2>
+
+                <p class="form-description">
+                    สมัครสมาชิกเพื่อใช้งาน HandSpeak
+                </p>
+
+
+                <form>
+
+                    <div class="loin-us-pv">
+
+                        <input
+                            type="text"
+                            placeholder="Username"
+                        >
+
+                    </div>
+
+
+                    <div class="loin-us-pv">
+
+                        <input
+                            type="password"
+                            placeholder="Password"
+                        >
+
+                    </div>
+
+
+                    <div class="loin-us-pv">
+
+                        <input
+                            type="password"
+                            placeholder="confirm Password"
+                        >
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="submit-button"
+                    >
+                        Sign in
+                    </button>
+
+                </form>
+
+            </section>
+
+
+        </div>
+
+
+        <!-- ช้งานไม่เข้าระบบ -->
+
+        <button class="guest">
+            เข้าใช้งานแบบไม่ต้อง Login
+        </button>
+
+
+    </main>
+
+
+
+    <!-- JavaScri -->
+
+    <script>
+
+        function showLogin() {
+
+            // แสดง B1
+            document.getElementById("b1").style.display = "block";
+
+            // ซ่อน B2
+            document.getElementById("b2").style.display = "none";
+
+        }
+
+
+        function showSignin() {
+
+            // ซ่อน B1
+            document.getElementById("b1").style.display = "none";
+
+            // แสดง B2
+            document.getElementById("b2").style.display = "block";
+
+        }
+
+    </script>
+
+</body>
+</html>
