@@ -1,9 +1,21 @@
 # IMPORTANT: this project requires Python 3.11 (mediapipe==0.10.9 has no wheel for Python 3.12/3.13)
 # If your default Python is newer, install Python 3.11 separately and run:
-#   py -3.11 -m pip install -r requirements.txt
+#   py -3.11 -m pip install -r requirements.txt --use-deprecated=legacy-resolver
+#
+# The --use-deprecated=legacy-resolver flag is REQUIRED: mediapipe and
+# streamlit-webrtc declare conflicting protobuf version ranges in their
+# metadata, so pip's normal resolver refuses to install this file at all.
+# The versions pinned below are confirmed to actually work together at
+# runtime despite the conflicting metadata; the legacy resolver installs
+# them anyway and just prints warnings instead of refusing.
 opencv-python
 mediapipe==0.10.9
 scikit-learn
 numpy
 streamlit
 Pillow
+streamlit-webrtc
+# protobuf pinned: mediapipe==0.10.9 needs an old protobuf, but streamlit-webrtc's
+# dependencies (aiortc) pull in a much newer one that breaks mediapipe. Version
+# 4.25.9 is the one confirmed to work with both at the same time.
+protobuf==4.25.9

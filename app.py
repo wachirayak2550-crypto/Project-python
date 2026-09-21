@@ -22,11 +22,15 @@ STEP 7-9: หน้าเว็บ HandSpeak แบบเต็มรูปแ�
 
 import os
 import pickle
+import threading
+import time
 
+import av
 import cv2
 import numpy as np
 import mediapipe as mp
 import streamlit as st
+from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration
 
 import database as db
 
@@ -159,6 +163,82 @@ def landmarks_to_list(hand_landmarks):
         row.append(point.y)
         row.append(point.z)
     return row
+
+
+# ต้องมี STUN server ตัวนี้ให้กล้องของ "คนที่เปิดเว็บ" เชื่อมต่อกับเซิร์ฟเวอร์ของเราได้
+# (จำเป็นเวลา deploy ขึ้นเว็บจริง ไม่งั้นเบราว์เซอร์กับเซิร์ฟเวอร์จะหากันไม่เจอ)
+RTC_CONFIGURATION = RTCConfiguration({
+    "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+})
+
+
+class HandSignProcessor(VideoProcessorBase):
+    """
+    ตัวประมวลผลวิดีโอของ streamlit-webrtc — รับภาพจาก "กล้องของคนที่เปิดเว็บ"
+    (ไม่ใช่กล้องเซิร์ฟเวอร์แบบ cv2.VideoCapture เดิม) มาประมวลผลทีละเฟรม
+
+    ทำงานเหมือน show_main_page เวอร์ชันเดิมทุกอย่าง (จับมือ -> ทายผล -> เช็คว่านิ่งพอไหม)
+    แค่โค้ดส่วนนี้รันอยู่คนละ thread กับหน้าเว็บหลัก เลยต้องมี self.lock
+    กันไม่ให้ 2 thread อ่าน/เขียนตัวแปรเดียวกันพร้อมกันจนข้อมูลปนกัน
+    """
+
+    def __init__(self):
+        with open(MODEL_PATH, "rb") as f:
+            self.model = pickle.load(f)
+
+        self.mp_hands = mp.solutions.hands
+        self.mp_drawing = mp.solutions.drawing_utils
+        self.hands = self.mp_hands.Hands(
+            static_image_mode=False,
+            max_num_hands=2,
+            min_detection_confidence=0.7,
+            min_tracking_confidence=0.5,
+        )
+
+        self.lock = threading.Lock()
+        self.displayed_label = "-"
+        self.candidate_label = None
+        self.candidate_count = 0
+        self.already_added = False
+        # คำใหม่ที่เพิ่งนิ่งพอ รอให้หน้าเว็บหลักมาหยิบไปเติมประโยค (เคลียร์เป็น None หลังหยิบไปแล้ว)
+        self.pending_new_word = None
+
+    def recv(self, frame):
+        img = frame.to_ndarray(format="bgr24")
+        img = cv2.flip(img, 1)
+        rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        result = self.hands.process(rgb_img)
+
+        dominant_hand = None
+        best_area = -1
+        if result.multi_hand_landmarks:
+            for hand_landmarks in result.multi_hand_landmarks:
+                self.mp_drawing.draw_landmarks(img, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
+                area = hand_bbox_area(hand_landmarks)
+                if area > best_area:
+                    best_area = area
+                    dominant_hand = hand_landmarks
+
+        current_prediction = None
+        if dominant_hand is not None:
+            features = np.array([landmarks_to_list(dominant_hand)])
+            current_prediction = self.model.predict(features)[0]
+
+        with self.lock:
+            if current_prediction == self.candidate_label:
+                self.candidate_count += 1
+            else:
+                self.candidate_label = current_prediction
+                self.candidate_count = 1
+                self.already_added = False
+
+            if self.candidate_count >= STABLE_FRAMES_REQUIRED:
+                self.displayed_label = self.candidate_label if self.candidate_label is not None else "-"
+                if self.candidate_label is not None and not self.already_added:
+                    self.already_added = True
+                    self.pending_new_word = self.candidate_label
+
+        return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 
 # ============================================================
@@ -343,35 +423,8 @@ def show_main_page():
         st.error(f"ไม่พบไฟล์ {MODEL_PATH} กรุณารัน 3_train_model.py ก่อน เพื่อเทรนและเซฟโมเดล")
         return
 
-    with open(MODEL_PATH, "rb") as f:
-        model = pickle.load(f)
-
-    mp_hands = mp.solutions.hands
-    mp_drawing = mp.solutions.drawing_utils
-    hands = mp_hands.Hands(
-        static_image_mode=False,
-        max_num_hands=2,
-        min_detection_confidence=0.7,
-        min_tracking_confidence=0.5,
-    )
-
     if "sentence_words" not in st.session_state:
         st.session_state.sentence_words = []
-
-    run_camera = st.checkbox("เปิดกล้อง")
-
-    # ---------- กล่องกล้อง (ทึบดำตอนยังไม่เปิด เหมือนดีไซน์ n2.html) ----------
-    frame_box = st.empty()
-    frame_box.markdown(f"""
-        <div style="background:#202020; height:400px; border-radius:10px;
-                    border:1px solid {BORDER}; display:flex; align-items:center;
-                    justify-content:center; text-align:center;">
-            <div>
-                <h2 style="color:white; margin:0 0 8px;">กล้อง</h2>
-                <p style="color:#aaaaaa; margin:0;">พื้นที่แสดงกล้อง</p>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
 
     # ---------- คำที่ทายได้ ----------
     st.markdown(f"<p style='text-align:center; color:{TEXT_MUTED}; margin-top:20px;'>คำที่ทายได้</p>", unsafe_allow_html=True)
@@ -409,75 +462,46 @@ def show_main_page():
         else:
             st.warning("ยังไม่มีคำในประโยคเลย")
 
-    if run_camera:
-        cap = cv2.VideoCapture(0)
+    # ---------- กล้อง ----------
+    # ใช้ streamlit-webrtc แทน cv2.VideoCapture(0) เดิม เพราะเดิมเปิด "กล้องเซิร์ฟเวอร์"
+    # ซึ่งใช้ได้แค่ตอนรันในเครื่องตัวเอง แต่ถ้า deploy ขึ้นเว็บจริง เซิร์ฟเวอร์ไม่มีกล้อง
+    # streamlit-webrtc จะขอเปิด "กล้องของคนที่กดลิงก์" ผ่านเบราว์เซอร์แทน ใช้ได้ทั้ง 2 กรณี
+    st.markdown("<p style='font-weight:600; margin-top:20px;'>กล้อง</p>", unsafe_allow_html=True)
+    st.caption("กดปุ่ม START ด้านล่างเพื่อขอเปิดกล้อง (เบราว์เซอร์จะถามอนุญาตก่อนใช้งานครั้งแรก)")
 
-        if not cap.isOpened():
-            st.error("เปิดกล้องไม่ได้ ลองเช็คว่ามีโปรแกรมอื่นใช้กล้องอยู่หรือเปล่า")
-            return
+    ctx = webrtc_streamer(
+        key="handspeak-camera",
+        video_processor_factory=HandSignProcessor,
+        rtc_configuration=RTC_CONFIGURATION,
+        media_stream_constraints={"video": True, "audio": False},
+    )
 
-        displayed_label = "-"
-        candidate_label = None
-        candidate_count = 0
-        already_added = False
+    if ctx.state.playing:
+        # ลูปนี้จะวนอ่านค่าจาก HandSignProcessor (ที่กำลังประมวลผลอยู่อีก thread หนึ่ง)
+        # มาอัปเดตหน้าจอ ทุกๆ 0.3 วินาที จนกว่าจะกด STOP
+        while ctx.state.playing:
+            if ctx.video_processor:
+                with ctx.video_processor.lock:
+                    label = ctx.video_processor.displayed_label
+                    new_word = ctx.video_processor.pending_new_word
+                    ctx.video_processor.pending_new_word = None
 
-        while run_camera:
-            ret, frame = cap.read()
-            if not ret:
-                st.error("อ่านภาพจากกล้องไม่ได้ หยุดโปรแกรม")
-                break
-
-            frame = cv2.flip(frame, 1)
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            result = hands.process(rgb_frame)
-
-            dominant_hand = None
-            best_area = -1
-
-            if result.multi_hand_landmarks:
-                for hand_landmarks in result.multi_hand_landmarks:
-                    mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-                    area = hand_bbox_area(hand_landmarks)
-                    if area > best_area:
-                        best_area = area
-                        dominant_hand = hand_landmarks
-
-            current_prediction = None
-            if dominant_hand is not None:
-                features = np.array([landmarks_to_list(dominant_hand)])
-                current_prediction = model.predict(features)[0]
-
-            if current_prediction == candidate_label:
-                candidate_count += 1
-            else:
-                candidate_label = current_prediction
-                candidate_count = 1
-                already_added = False
-
-            if candidate_count >= STABLE_FRAMES_REQUIRED:
-                displayed_label = candidate_label if candidate_label is not None else "-"
-
-                if candidate_label is not None and not already_added:
-                    st.session_state.sentence_words.append(candidate_label)
-                    already_added = True
-                    db.log_prediction(user["id"], candidate_label)  # บันทึกประวัติการทายผลลง DB
+                if new_word is not None:
+                    st.session_state.sentence_words.append(new_word)
+                    db.log_prediction(user["id"], new_word)  # บันทึกประวัติการทายผลลง DB
                     render_sentence()
 
-            result_box.markdown(
-                f"<p style='text-align:center; font-size:40px; color:{PINK}; font-weight:600;'>{displayed_label}</p>",
-                unsafe_allow_html=True,
-            )
-
-            rgb_display = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_box.image(rgb_display)
-
-        cap.release()
+                result_box.markdown(
+                    f"<p style='text-align:center; font-size:40px; color:{PINK}; font-weight:600;'>{label}</p>",
+                    unsafe_allow_html=True,
+                )
+            time.sleep(0.3)
     else:
         result_box.markdown(
             f"<p style='text-align:center; font-size:40px; color:{PINK}; font-weight:600;'>กำลังรอการตรวจจับ...</p>",
             unsafe_allow_html=True,
         )
-        st.info("ติ๊กช่อง 'เปิดกล้อง' ด้านบนเพื่อเริ่มใช้งาน")
+        st.info("กดปุ่ม START ด้านบนเพื่อเริ่มใช้งาน")
 
 
 # ============================================================
