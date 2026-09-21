@@ -148,12 +148,16 @@ def sync_labels_with_file():
     existing_names = {row[0] for row in cursor.fetchall()}
     wanted_names = set(LABELS)
 
-    for name in wanted_names - existing_names:
-        category = "number" if name.isdigit() else "word"
-        cursor.execute(
-            "INSERT INTO labels (name, category, created_at) VALUES (?, ?, ?)",
-            (name, category, now_text()),
-        )
+    # วนตาม "ลิสต์ LABELS" ตามลำดับเป๊ะๆ (ห้ามวนตาม set เพราะ Python เรียงลำดับ
+    # ของ set แบบสุ่มไม่คงที่ในแต่ละเครื่อง/แต่ละครั้งที่รัน จะทำให้ id ที่ auto-increment
+    # ได้ไม่ตรงกันข้ามเครื่อง แล้ว index [0][1][2]... ที่โชว์ตอนอัดข้อมูลจะไม่ตรงกันไปด้วย)
+    for name in LABELS:
+        if name not in existing_names:
+            category = "number" if name.isdigit() else "word"
+            cursor.execute(
+                "INSERT INTO labels (name, category, created_at) VALUES (?, ?, ?)",
+                (name, category, now_text()),
+            )
 
     for name in existing_names - wanted_names:
         cursor.execute("DELETE FROM labels WHERE name = ?", (name,))
