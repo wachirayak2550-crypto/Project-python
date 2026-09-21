@@ -16,6 +16,18 @@ STEP 1: ทดสอบกล้อง + จับจุดมือด้วย
 import cv2
 import mediapipe as mp
 
+# เช็คก่อนว่า mediapipe เวอร์ชันนี้มีฟีเจอร์จับมือที่เราต้องใช้ไหม
+# (ถ้าเครื่องใช้ Python ใหม่เกินไป เช่น 3.12/3.13 อาจได้ mediapipe เวอร์ชันที่ตัดฟีเจอร์นี้ทิ้งไปแล้ว)
+if not hasattr(mp, "solutions"):
+    print("เจอปัญหา: mediapipe เวอร์ชันนี้ไม่มีฟีเจอร์จับมือที่โปรแกรมนี้ต้องใช้")
+    print("สาเหตุที่พบบ่อยที่สุด: เครื่องนี้ใช้ Python เวอร์ชันใหม่เกินไป (เช่น 3.12 หรือ 3.13)")
+    print("")
+    print("วิธีแก้:")
+    print("1. ติดตั้ง Python 3.11 จาก https://www.python.org/downloads/release/python-3119/")
+    print("2. ติดตั้ง library ใหม่ด้วย Python 3.11:  py -3.11 -m pip install -r requirements.txt")
+    print("3. รันไฟล์นี้ใหม่ด้วย Python 3.11:  py -3.11 1_test_camera.py")
+    exit()
+
 # ---------- เตรียมตัวจับมือของ MediaPipe ----------
 # mp_hands คือโมดูลที่มีความสามารถจับจุดบนมือ (hand landmarks)
 mp_hands = mp.solutions.hands

@@ -1,3 +1,6 @@
+# IMPORTANT: this project requires Python 3.11 (mediapipe==0.10.9 has no wheel for Python 3.12/3.13)
+# If your default Python is newer, install Python 3.11 separately and run:
+#   py -3.11 -m pip install -r requirements.txt
 opencv-python
 mediapipe==0.10.9
 scikit-learn
