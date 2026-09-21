@@ -130,19 +130,51 @@ def migrate_labels_from_file():
     conn.close()
 
 
+def sync_labels_with_file():
+    """
+    ทำให้ตาราง labels ตรงกับ labels.py เป๊ะๆ เสมอ (เพิ่มคำที่ขาด + ลบคำที่ตัดออกไปแล้ว)
+
+    เหตุผลที่ต้องมีฟังก์ชันนี้: ทุกคนมีไฟล์ handspeak.db ของตัวเอง (ไม่ sync ผ่าน git)
+    ถ้าใครตั้งเครื่องไว้ตั้งแต่ก่อนที่ทีมจะปรับสโคปคำ (เช่น ตัดคำออกทีหลัง)
+    ฐานข้อมูลเครื่องนั้นจะยังค้างคำเก่าอยู่ ฟังก์ชันนี้จะลบคำเก่าที่ไม่อยู่ใน labels.py แล้ว
+    ออกให้อัตโนมัติทุกครั้งที่รันโปรแกรม ไม่ต้องลบไฟล์ handspeak.db เองอีกต่อไป
+    """
+    from labels import LABELS
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT name FROM labels")
+    existing_names = {row[0] for row in cursor.fetchall()}
+    wanted_names = set(LABELS)
+
+    for name in wanted_names - existing_names:
+        category = "number" if name.isdigit() else "word"
+        cursor.execute(
+            "INSERT INTO labels (name, category, created_at) VALUES (?, ?, ?)",
+            (name, category, now_text()),
+        )
+
+    for name in existing_names - wanted_names:
+        cursor.execute("DELETE FROM labels WHERE name = ?", (name,))
+
+    conn.commit()
+    conn.close()
+
+
 def ensure_ready():
     """
-    เตรียมฐานข้อมูลให้พร้อมใช้งานอัตโนมัติ เผื่อลืมรัน 0_setup_database.py มาก่อน
-    (เช่น เพิ่ง git clone โปรเจคมาใหม่ ยังไม่มีไฟล์ handspeak.db เลย)
+    เตรียมฐานข้อมูลให้พร้อมใช้งานอัตโนมัติทุกครั้งที่รันโปรแกรม
+    (เช่น เพิ่ง git clone มาใหม่ยังไม่มี handspeak.db เลย หรือทีมเพิ่งปรับสโคปคำ)
 
-    สร้างตารางถ้ายังไม่มี แล้วถ้าตาราง labels ยังว่างอยู่ (แปลว่าเป็นฐานข้อมูลใหม่เอี่ยม)
-    จะสร้างบัญชีแอดมินเริ่มต้น + ย้ายคำจาก labels.py เข้าไปให้อัตโนมัติ
+    สร้างตารางถ้ายังไม่มี สร้างบัญชีแอดมินเริ่มต้นถ้ายังไม่มีใครเลย
+    แล้วซิงค์ตาราง labels ให้ตรงกับ labels.py เสมอ (เพิ่มคำใหม่ + ลบคำที่ตัดออกไปแล้ว)
     ไฟล์อื่น (2_collect_data.py, 3_train_model.py, app.py) เรียกใช้ฟังก์ชันนี้ที่เดียวพอ
     """
     create_tables()
-    if len(get_label_names()) == 0:
+    if len(get_all_users()) == 0:
         seed_admin_account()
-        migrate_labels_from_file()
+    sync_labels_with_file()
 
 
 # ============================================================
