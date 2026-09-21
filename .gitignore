@@ -11,3 +11,6 @@ __pycache__/
 *.pyc
 
 .claude/
+
+# ห้าม commit ไฟล์นี้เด็ดขาด มี secret key ของ TURN server อยู่ข้างใน
+.streamlit/secrets.toml

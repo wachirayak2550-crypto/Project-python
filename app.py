@@ -165,11 +165,31 @@ def landmarks_to_list(hand_landmarks):
     return row
 
 
-# ต้องมี STUN server ตัวนี้ให้กล้องของ "คนที่เปิดเว็บ" เชื่อมต่อกับเซิร์ฟเวอร์ของเราได้
-# (จำเป็นเวลา deploy ขึ้นเว็บจริง ไม่งั้นเบราว์เซอร์กับเซิร์ฟเวอร์จะหากันไม่เจอ)
-RTC_CONFIGURATION = RTCConfiguration({
-    "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-})
+def get_ice_servers():
+    """
+    หารายชื่อ STUN/TURN server ให้กล้องของ "คนที่เปิดเว็บ" เชื่อมต่อกับเซิร์ฟเวอร์เราได้
+
+    STUN อย่างเดียว (ฟรีของ Google) พอสำหรับรันในเครื่องตัวเอง แต่ตอน deploy ขึ้น
+    Streamlit Cloud มักไม่พอ ต้องมี TURN server ช่วยด้วย (เราใช้ของ Metered.ca ฟรี
+    แบบ static credential ที่สร้างไว้ล่วงหน้าจาก dashboard ไม่ต้องเรียก API)
+
+    ค่า username/credential เก็บไว้ใน st.secrets เท่านั้น (ไม่ใส่ในโค้ดตรงๆ เพราะ
+    repo เป็น public ใครก็เห็นได้) ถ้าไม่ได้ตั้งค่า secrets ไว้ (เช่น รันในเครื่อง
+    ตัวเองโดยยังไม่ได้ตั้งค่า) จะใช้แค่ STUN ฟรีแทน ไม่ error
+    """
+    username = st.secrets.get("TURN_USERNAME")
+    credential = st.secrets.get("TURN_CREDENTIAL")
+
+    if not username or not credential:
+        return [{"urls": ["stun:stun.l.google.com:19302"]}]
+
+    return [
+        {"urls": "stun:stun.relay.metered.ca:80"},
+        {"urls": "turn:global.relay.metered.ca:80", "username": username, "credential": credential},
+        {"urls": "turn:global.relay.metered.ca:80?transport=tcp", "username": username, "credential": credential},
+        {"urls": "turn:global.relay.metered.ca:443", "username": username, "credential": credential},
+        {"urls": "turns:global.relay.metered.ca:443?transport=tcp", "username": username, "credential": credential},
+    ]
 
 
 class HandSignProcessor(VideoProcessorBase):
@@ -472,7 +492,7 @@ def show_main_page():
     ctx = webrtc_streamer(
         key="handspeak-camera",
         video_processor_factory=HandSignProcessor,
-        rtc_configuration=RTC_CONFIGURATION,
+        rtc_configuration=RTCConfiguration({"iceServers": get_ice_servers()}),
         media_stream_constraints={"video": True, "audio": False},
     )
 
