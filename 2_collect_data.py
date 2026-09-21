@@ -14,16 +14,40 @@ STEP 2: อัดข้อมูลท่ามือ (เก็บไว้ส�
   เพื่อให้ข้อมูลทุกแถวมีจำนวนตัวเลขเท่ากันเสมอ (63 ตัว) โมเดลจะได้ไม่งง
 
 วิธีใช้: รัน python 2_collect_data.py แล้วทำตามคำแนะนำในโปรแกรม
-กด SPACE เพื่อบันทึกท่าปัจจุบัน, กด 'q' เพื่อออกจากโปรแกรม
+กด SPACE เพื่อบันทึกท่าปัจจุบัน, กด BACKSPACE เพื่อลบท่าล่าสุดที่เพิ่งบันทึกไป (เผื่อกดพลาด),
+กด 'q' เพื่อออกจากโปรแกรม
 """
 
 import os
 import csv
 
 import cv2
+import numpy as np
 import mediapipe as mp
+from PIL import ImageFont, ImageDraw, Image
 
-from labels import LABELS
+import database as db
+
+# รายชื่อคำที่จะอัด ตอนนี้ดึงจากฐานข้อมูล (ตาราง labels) แทนไฟล์ labels.py แบบเดิม
+# เพราะแอดมินสามารถเพิ่ม/ลบคำผ่านหน้าเว็บได้แล้ว ฐานข้อมูลจึงเป็นแหล่งข้อมูลหลักตอนนี้
+LABELS = db.get_label_names()
+
+# cv2.putText ธรรมดา "วาดภาษาไทยไม่ได้" (จะขึ้นเป็น ??? แทน)
+# เลยต้องใช้ Pillow (PIL) ช่วยวาดตัวหนังสือไทยแทน โดยใช้ฟอนต์ Tahoma ที่มากับ Windows
+THAI_FONT_PATH = "C:/Windows/Fonts/tahoma.ttf"
+thai_font = ImageFont.truetype(THAI_FONT_PATH, 28)
+
+
+def draw_thai_text(frame, text, position, font=thai_font, color_bgr=(0, 255, 0)):
+    """
+    วาดข้อความภาษาไทย (หรือข้อความอะไรก็ได้) ลงบนภาพ frame
+    วิธีทำ: แปลงภาพเป็นรูปแบบของ Pillow -> วาดตัวหนังสือ -> แปลงกลับเป็นภาพของ OpenCV
+    """
+    img_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+    draw = ImageDraw.Draw(img_pil)
+    color_rgb = (color_bgr[2], color_bgr[1], color_bgr[0])  # PIL ใช้สีแบบ RGB ไม่ใช่ BGR
+    draw.text(position, text, font=font, fill=color_rgb)
+    return cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
 
 # ---------- เตรียมตัวจับมือของ MediaPipe (เหมือน STEP 1) ----------
 mp_hands = mp.solutions.hands
@@ -69,9 +93,18 @@ def landmarks_to_list(hand_landmarks):
     return row
 
 
+def label_to_filename(label):
+    """
+    แปลงชื่อคำให้ใช้เป็นชื่อไฟล์ได้ปลอดภัย
+    บางคำมีเครื่องหมาย "/" อยู่ในชื่อ (เช่น "หยุด/อย่า") ซึ่งคอมพิวเตอร์จะเข้าใจผิด
+    ว่าเป็นการแบ่งโฟลเดอร์ย่อย เลยต้องแทนที่ "/" ด้วย "_" ก่อนใช้เป็นชื่อไฟล์
+    """
+    return label.replace("/", "_")
+
+
 def count_saved_rows(label):
     """นับว่าไฟล์ของตัวนี้มีข้อมูลบันทึกไว้แล้วกี่แถว (กี่ตัวอย่าง)"""
-    file_path = os.path.join(DATA_DIR, f"{label}.csv")
+    file_path = os.path.join(DATA_DIR, f"{label_to_filename(label)}.csv")
     if not os.path.exists(file_path):
         return 0
     with open(file_path, "r", newline="") as f:
@@ -88,7 +121,7 @@ choice = input("พิมพ์หมายเลขของตัวที่�
 chosen_index = int(choice)
 current_label = LABELS[chosen_index]
 
-output_path = os.path.join(DATA_DIR, f"{current_label}.csv")
+output_path = os.path.join(DATA_DIR, f"{label_to_filename(current_label)}.csv")
 print(f"\nกำลังอัดข้อมูลของตัว '{current_label}' -> จะบันทึกลงไฟล์ {output_path}")
 print("ทำท่ามือค้างไว้หน้ากล้อง แล้วกด SPACE เพื่อบันทึก 1 ครั้ง")
 print("แนะนำให้ขยับมือ/มุมนิดหน่อยระหว่างกด จะได้ข้อมูลหลากหลาย (เป้าหมาย ~50-100 ครั้ง)")
@@ -102,6 +135,10 @@ if not cap.isOpened():
     exit()
 
 saved_count = count_saved_rows(current_label)
+
+# ตำแหน่ง (byte) ของไฟล์ก่อนจะบันทึกท่าล่าสุด ใช้สำหรับ "ลบท่าล่าสุด" ด้วย BACKSPACE
+# ถ้ายังไม่เคยบันทึกอะไรในรอบนี้เลย ค่านี้จะเป็น None (แปลว่ายังลบอะไรไม่ได้)
+last_save_position = None
 
 while True:
     ret, frame = cap.read()
@@ -129,15 +166,12 @@ while True:
                 best_area = area
                 dominant_hand = hand_landmarks
 
-    # ---------- แสดงข้อความช่วยเหลือบนจอ ----------
-    cv2.putText(frame, f"Label: {current_label}  Saved: {saved_count}",
-                (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-    cv2.putText(frame, "SPACE = save, q = quit",
-                (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+    # ---------- แสดงข้อความช่วยเหลือบนจอ (ใช้ draw_thai_text เพราะมีตัวหนังสือไทย) ----------
+    frame = draw_thai_text(frame, f"Label: {current_label}  Saved: {saved_count}", (10, 10))
+    frame = draw_thai_text(frame, "SPACE = save, BACKSPACE = undo last, q = quit", (10, 45))
 
     if dominant_hand is None:
-        cv2.putText(frame, "ไม่เจอมือ - ยกมือเข้ามาในเฟรม",
-                    (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        frame = draw_thai_text(frame, "ไม่เจอมือ - ยกมือเข้ามาในเฟรม", (10, 80), color_bgr=(0, 0, 255))
 
     cv2.imshow("HandSpeak - Collect Data", frame)
 
@@ -150,6 +184,12 @@ while True:
         if dominant_hand is None:
             print("ยังไม่เจอมือในเฟรม ยกมือเข้ามาก่อนแล้วค่อยกด SPACE")
         else:
+            # จำตำแหน่งไฟล์ "ก่อน" เขียนแถวใหม่ไว้ก่อน เผื่อต้องลบทีหลัง (BACKSPACE)
+            if os.path.exists(output_path):
+                last_save_position = os.path.getsize(output_path)
+            else:
+                last_save_position = 0
+
             row = landmarks_to_list(dominant_hand)
             # เปิดไฟล์แบบ "a" (append) คือเขียนต่อท้ายไฟล์ ไม่ลบของเดิม
             with open(output_path, "a", newline="") as f:
@@ -157,6 +197,17 @@ while True:
                 writer.writerow(row)
             saved_count += 1
             print(f"บันทึกแล้ว! ตอนนี้ตัว '{current_label}' มีข้อมูล {saved_count} ครั้ง")
+
+    if key == 8:  # 8 คือรหัสของปุ่ม BACKSPACE
+        if last_save_position is None:
+            print("ไม่มีท่าล่าสุดให้ลบ (ลบได้แค่ท่าที่เพิ่งกด SPACE ไปในรอบนี้เท่านั้น)")
+        else:
+            # ตัดไฟล์ให้เหลือแค่ถึงตำแหน่งก่อนหน้าที่เคยบันทึกไว้ = ลบแถวล่าสุดทิ้ง
+            with open(output_path, "r+", newline="") as f:
+                f.truncate(last_save_position)
+            saved_count -= 1
+            print(f"ลบท่าล่าสุดแล้ว ตอนนี้ตัว '{current_label}' เหลือข้อมูล {saved_count} ครั้ง")
+            last_save_position = None  # ลบได้แค่ครั้งเดียวติดกัน ป้องกันกดรัวจนลบเกิน
 
 # ---------- เก็บกวาดก่อนปิดโปรแกรม ----------
 cap.release()
